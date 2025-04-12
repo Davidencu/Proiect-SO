@@ -19,7 +19,7 @@ typedef struct coordinates{
 
 typedef struct treasure{
   char id[8];
-  char username[25];
+  char username[33];
   char clue[64];
   coordinates c;
   int value;
@@ -88,7 +88,7 @@ void find_treasure_hunt(DIR *d,int *treasure_hunt_found,char *hunt_id, char *rel
     }
     current_pointer=readdir(d);
   }
-  printf("%s\n",relative_path);
+  //printf("%s\n",relative_path);
 }
 
 void add_function(char *hunt_id)
@@ -113,6 +113,7 @@ void add_function(char *hunt_id)
   find_treasure_hunt(d, &treasure_hunt_found, hunt_id, relative_path, &directory_number,symlink_name);
   if(treasure_hunt_found == 0)
   {
+    printf("Hunt not found, adding the hunt...\n");
     sprintf(relative_path,"./%d",directory_number);
       if(mkdir(relative_path, 0777)==-1)
       {
@@ -239,10 +240,12 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
         }
       if(operation == 2) //if op = 2 we remove the specified treasure
       {
+        int treasure_found=0;
         for(int i=0;i<treasures_number;i++)
         {
           if(strcmp(treasures[i].id, treasure_id)==0)
           {
+            treasure_found++;
             for (int j=i;j<treasures_number-1;j++)
             {
               treasures[j]=treasures[j+1];
@@ -252,6 +255,8 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
           }
           
         }
+        if(treasure_found!=0)
+        {
         if((descr=open(relative_path, O_TRUNC)) < 0)
         {
           perror("truncate the file");
@@ -280,7 +285,11 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
           perror("close the treasures file");
           exit(-1);
         }
-        
+        }
+        else
+        {
+          printf("Treasure not found\n");
+        }
         sprintf(message,"[%s]: remove_treasure %s %s\n",getpwuid(getuid())->pw_name,hunt_id, treasure_id);
         write_to_logged_hunt(symlink_name,message);
       }
@@ -307,22 +316,33 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
       }
       if(operation==1) //print a specific treasure by its id
       {
+        int treasure_found=0;
         for(int i=0;i<treasures_number;i++)
         {
           if(strcmp(treasures[i].id, treasure_id)==0)
           {
+            treasure_found++;
             printf("Treasure %d: %s - %s - %s - %f - %f\n",i,treasures[i].id,treasures[i].username,treasures[i].clue,treasures[i].c.x,treasures[i].c.y);
             break;
           }
         }
+        if(treasure_found==0)
+        {
+          printf("Treasure not found\n");
+        }
         sprintf(message,"[%s]: view %s %s\n",getpwuid(getuid())->pw_name,hunt_id, treasure_id);
         write_to_logged_hunt(symlink_name,message);
       }
-      if (closedir(d)!=0)
-      {
-        perror("close the hunt directory");
-        exit(-1);
-      }
+      
+  }
+  else
+  {
+    printf("Hunt not found\n");
+  }
+  if (closedir(d)!=0)
+  {
+    perror("close the hunt directory");
+    exit(-1);
   }
 }
 
@@ -385,6 +405,10 @@ void remove_hunt(char *hunt_id) //function for removing an entire hunt
       exit(-1);
     }
     printf("Done deleting the symlink\n");
+  }
+  else
+  {
+    printf("Hunt not found\n");
   }
   if (closedir(d)!=0)
   {
