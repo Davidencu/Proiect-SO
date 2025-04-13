@@ -47,37 +47,20 @@ void find_treasure_hunt(DIR *d,int *treasure_hunt_found,char *hunt_id, char *rel
   relative_path[0]='\0';
   char name[100];
   int symlink_found=0;
-  sprintf(name,"./logged_hunt-<%s>",hunt_id);
+  sprintf(name,"./logged_hunt-%s",hunt_id);
   struct dirent *current_pointer=readdir(d);
   while(current_pointer != NULL) //If there is no directory inside the main directory
   {
     if (current_pointer->d_type == DT_DIR && strcmp(current_pointer->d_name, ".git")!=0 && strcmp(current_pointer->d_name, ".")!=0 && strcmp(current_pointer->d_name, "..")!=0)
-    {
-      DIR *subd=opendir(current_pointer->d_name);
-      struct dirent *current_pointer_subd=readdir(subd);
-      
-      if(subd!=NULL)
       {
-        while(current_pointer_subd != NULL)
-        {
           //printf("%s - %s\n", current_pointer_subd->d_name, hunt_id);
-          if (current_pointer_subd->d_type == DT_DIR && strcmp(current_pointer_subd->d_name, hunt_id)==0)
+          if (strcmp(current_pointer->d_name, hunt_id)==0)
           {
             *treasure_hunt_found=1;
-            sprintf(relative_path,"./%s/%s",current_pointer->d_name,hunt_id);
-            break;
+            sprintf(relative_path,"./%s",hunt_id);
           }
-          current_pointer_subd = readdir(subd);
-        }
       }
-      *directory_number=*directory_number+1;
-      if(closedir(subd)!=0)
-      {
-        perror("closedir");
-        exit(-1);
-      }
-    }
-    else if((current_pointer->d_type = DT_REG) && (symlink_found == 0))
+    else if(symlink_found == 0)
     {
       //struct stat statbuf;
       sprintf(symlink_name,"./%s",current_pointer->d_name);
@@ -88,7 +71,6 @@ void find_treasure_hunt(DIR *d,int *treasure_hunt_found,char *hunt_id, char *rel
     }
     current_pointer=readdir(d);
   }
-  //printf("%s\n",relative_path);
 }
 
 void add_function(char *hunt_id)
@@ -114,7 +96,7 @@ void add_function(char *hunt_id)
   if(treasure_hunt_found == 0)
   {
     printf("Hunt not found, adding the hunt...\n");
-    sprintf(relative_path,"./%d",directory_number);
+    sprintf(relative_path,"./%s",hunt_id);
       if(mkdir(relative_path, 0777)==-1)
       {
         perror("Create the hunt directory");
@@ -122,21 +104,10 @@ void add_function(char *hunt_id)
       }
       else
       {
-        printf("Succesfully created directory no %d\n", directory_number);
+        printf("Succesfully created the hunt directory\n");
       }
       //sprintf(logged_hunt_relative_path,"%s/logged_hunt.txt",relative_path);
-      strcat(relative_path,"/");
-      strcat(relative_path,hunt_id);
       sprintf(logged_hunt_relative_path,"%s/logged_hunt.txt",relative_path);
-      if(mkdir(relative_path, 0777)==-1)
-      {
-        printf("Cannot add the hunt:%s\n", strerror(errno));
-        exit(-1);
-      }
-      else
-      {
-        printf("Succesfully added the hunt\n");
-      }
       if((descr = open(logged_hunt_relative_path, O_CREAT | O_WRONLY | O_APPEND, 0777))==-1)
       {
         printf("Cannot add the logged hunt:%s\n", strerror(errno));
@@ -146,7 +117,7 @@ void add_function(char *hunt_id)
       {
         printf("Succesfully added the logged hunt\n");
       }
-      sprintf(symlink_name,"logged_hunt-<%s>",hunt_id);
+      sprintf(symlink_name,"logged_hunt-%s",hunt_id);
       if(symlink(logged_hunt_relative_path,symlink_name)==-1)
       {
         perror("symlink failed");
@@ -311,7 +282,7 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
           printf("Treasure %d: %s - %s - %s - %f - %f - %d\n",i,treasures[i].id,treasures[i].username,treasures[i].clue,treasures[i].c.x,treasures[i].c.y,treasures[i].value);
         }
         
-        sprintf(message,"[%s]: list %s\n",treasures[0].username,hunt_id);
+        sprintf(message,"[%s]: list %s\n",getpwuid(getuid())->pw_name,hunt_id);
         write_to_logged_hunt(symlink_name,message);
       }
       if(operation==1) //print a specific treasure by its id
@@ -322,7 +293,7 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
           if(strcmp(treasures[i].id, treasure_id)==0)
           {
             treasure_found++;
-            printf("Treasure %d: %s - %s - %s - %f - %f\n",i,treasures[i].id,treasures[i].username,treasures[i].clue,treasures[i].c.x,treasures[i].c.y);
+            printf("Treasure %d: %s - %s - %s - %f - %f - %d\n",i,treasures[i].id,treasures[i].username,treasures[i].clue,treasures[i].c.x,treasures[i].c.y,treasures[i].value);
             break;
           }
         }
