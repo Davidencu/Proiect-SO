@@ -25,7 +25,7 @@ typedef struct treasure{
   int value;
 }treasure;
 
-void write_to_logged_hunt(char *symlink_name,char *message)
+void write_to_logged_hunt(char *symlink_name,char *message) //function for writing a message to the logged_hunt
 {
   int descr=0;
   if((descr=open(symlink_name, O_WRONLY | O_APPEND))==-1)
@@ -41,15 +41,14 @@ void write_to_logged_hunt(char *symlink_name,char *message)
     }
 }
 
-void find_treasure_hunt(DIR *d,int *treasure_hunt_found,char *hunt_id, char *relative_path, int *directory_number,char *symlink_name)
-{
-  *directory_number=0;
+void find_treasure_hunt(DIR *d,int *treasure_hunt_found,char *hunt_id, char *relative_path, char *symlink_name)
+{                                                                               //function for searching for a specific hunt and its symlink
   relative_path[0]='\0';
   char name[100];
   int symlink_found=0;
   sprintf(name,"./logged_hunt-%s",hunt_id);
   struct dirent *current_pointer=readdir(d);
-  while(current_pointer != NULL) //If there is no directory inside the main directory
+  while(current_pointer != NULL) //while there are still elements in the main directory
   {
     if (current_pointer->d_type == DT_DIR && strcmp(current_pointer->d_name, ".git")!=0 && strcmp(current_pointer->d_name, ".")!=0 && strcmp(current_pointer->d_name, "..")!=0)
       {
@@ -73,10 +72,9 @@ void find_treasure_hunt(DIR *d,int *treasure_hunt_found,char *hunt_id, char *rel
   }
 }
 
-void add_function(char *hunt_id)
+void add_function(char *hunt_id) //adds a treasure in a specified hunt. If the hunt doesn't exist, it will be created and then a treasure will be added to it
 {
   DIR *d=NULL;
-  int directory_number=0;
   int treasure_hunt_found=0;
   if((d=opendir("."))==NULL) //if the main directory cannot be opened
   {
@@ -92,8 +90,8 @@ void add_function(char *hunt_id)
   char symlink_name[100];
   char message[100];
   int descr=0;
-  find_treasure_hunt(d, &treasure_hunt_found, hunt_id, relative_path, &directory_number,symlink_name);
-  if(treasure_hunt_found == 0)
+  find_treasure_hunt(d, &treasure_hunt_found, hunt_id, relative_path,symlink_name);
+  if(treasure_hunt_found == 0) //if the treasure hunt does not exist, we will add it
   {
     printf("Hunt not found, adding the hunt...\n");
     sprintf(relative_path,"./%s",hunt_id);
@@ -107,7 +105,7 @@ void add_function(char *hunt_id)
         printf("Succesfully created the hunt directory\n");
       }
       //sprintf(logged_hunt_relative_path,"%s/logged_hunt.txt",relative_path);
-      sprintf(logged_hunt_relative_path,"%s/logged_hunt.txt",relative_path);
+      sprintf(logged_hunt_relative_path,"%s/logged_hunt.txt",relative_path); //adding the logged hunt text file
       if((descr = open(logged_hunt_relative_path, O_CREAT | O_WRONLY | O_APPEND, 0777))==-1)
       {
         printf("Cannot add the logged hunt:%s\n", strerror(errno));
@@ -118,7 +116,7 @@ void add_function(char *hunt_id)
         printf("Succesfully added the logged hunt\n");
       }
       sprintf(symlink_name,"logged_hunt-%s",hunt_id);
-      if(symlink(logged_hunt_relative_path,symlink_name)==-1)
+      if(symlink(logged_hunt_relative_path,symlink_name)==-1) //creating the symbolic link
       {
         perror("symlink failed");
         exit(-1);
@@ -129,18 +127,18 @@ void add_function(char *hunt_id)
         exit(-1);
       }
   }
-    treasure buffer;
+    treasure buffer; //now we will add the treasure to the hunt
     strcat(relative_path,"/file.bin");
-    descr=open(relative_path,O_CREAT | O_WRONLY | O_APPEND, 00755);
+    descr=open(relative_path,O_CREAT | O_WRONLY | O_APPEND, 00777); //creating a binary file inside the unique hunt directory where the treasures are stored
     if(descr == -1)
     {
       perror("open treasure file failed");
       exit(-1);
     }
-    printf("Treasure ID: ");
+    printf("Treasure ID: "); //reading the treasure elements from the stdin
     scanf("%7s",buffer.id);
     strcpy(buffer.username,getpwuid(getuid())->pw_name);
-    printf("The username was automatically recorded\n");
+    printf("The username was automatically recorded\n"); //the username is the login username
     printf("Clue (you cannot use spaces): ");
     scanf("%63s",buffer.clue);
     printf("Coordinate x: ");
@@ -149,7 +147,7 @@ void add_function(char *hunt_id)
     scanf("%f",&buffer.c.y);
     printf("Value: ");
     scanf("%d",&buffer.value);
-    if(write(descr,&buffer,sizeof(buffer))==-1)
+    if(write(descr,&buffer,sizeof(buffer))==-1) //writing the treasure to the binary file
     {
       perror("write treasure to the specified hunt");
       exit(-1);
@@ -161,7 +159,7 @@ void add_function(char *hunt_id)
     }
     //sprintf(symlink_name,"logged_hunt-<%s>",hunt_id);
     sprintf(message,"[%s]: add_treasure %s\n",getpwuid(getuid())->pw_name,hunt_id);
-    write_to_logged_hunt(symlink_name,message);
+    write_to_logged_hunt(symlink_name,message); //printing the corresponding message to the logged_hunt
   if(closedir(d)!=0)
   {
     perror("close the hunt directory");
@@ -175,9 +173,8 @@ void add_function(char *hunt_id)
 
 void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation) //the operation field selects what to be executed
 {
-  treasure treasures[MAX_TREASURES];
+  treasure treasures[MAX_TREASURES]; //the array of treasures
   int treasures_number=0;
-  int directory_number=0;
   DIR *d=NULL;
   char relative_path[100];
   char symlink_name[100];
@@ -189,7 +186,7 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
     perror("Open the hunt directory");
     exit(-1);
   }
-  find_treasure_hunt(d, &treasure_hunt_found, hunt_id, relative_path, &directory_number,symlink_name);
+  find_treasure_hunt(d, &treasure_hunt_found, hunt_id, relative_path,symlink_name);
   if(treasure_hunt_found)
   {
     
@@ -200,7 +197,7 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
         perror("Open the file for reading the treasures");
         exit(-1);
       }
-      while((read(descr,&treasures[treasures_number], sizeof(treasures)/MAX_TREASURES)) > 0)
+      while((read(descr,&treasures[treasures_number], sizeof(treasures)/MAX_TREASURES)) > 0) //reading the treasures from the file in the array called "treasures"
         {
           treasures_number++;
         }
@@ -212,7 +209,7 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
       if(operation == 2) //if op = 2 we remove the specified treasure
       {
         int treasure_found=0;
-        for(int i=0;i<treasures_number;i++)
+        for(int i=0;i<treasures_number;i++) //removing a treasure from the array
         {
           if(strcmp(treasures[i].id, treasure_id)==0)
           {
@@ -228,7 +225,7 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
         }
         if(treasure_found!=0)
         {
-        if((descr=open(relative_path, O_TRUNC)) < 0)
+        if((descr=open(relative_path, O_TRUNC)) < 0) //deleting all the items inside the file in order to rewrite it with the remaining treasures in the array
         {
           perror("truncate the file");
           exit(-1);
@@ -238,7 +235,7 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
           perror("close the treasures file");
           exit(-1);
         }
-        if((descr=open(relative_path, O_WRONLY | O_APPEND)) < 0)
+        if((descr=open(relative_path, O_WRONLY | O_APPEND)) < 0) //now we will rewrite the binary file
         {
           perror("open the treasures file for writing");
           exit(-1);
@@ -283,7 +280,7 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
         }
         
         sprintf(message,"[%s]: list %s\n",getpwuid(getuid())->pw_name,hunt_id);
-        write_to_logged_hunt(symlink_name,message);
+        write_to_logged_hunt(symlink_name,message); //printing the corresponding message to the lgged_hunt
       }
       if(operation==1) //print a specific treasure by its id
       {
@@ -302,7 +299,7 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
           printf("Treasure not found\n");
         }
         sprintf(message,"[%s]: view %s %s\n",getpwuid(getuid())->pw_name,hunt_id, treasure_id);
-        write_to_logged_hunt(symlink_name,message);
+        write_to_logged_hunt(symlink_name,message); //printing the corresponding message to the logged_hunt file
       }
       
   }
@@ -319,7 +316,6 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
 
 void remove_hunt(char *hunt_id) //function for removing an entire hunt
 {
-  int directory_number=0;
   DIR *d=NULL;
   char relative_path[100];
   char file_relative_path[400];
@@ -330,9 +326,9 @@ void remove_hunt(char *hunt_id) //function for removing an entire hunt
     perror("Open the hunt directory");
     exit(-1);
   }
-  find_treasure_hunt(d, &treasure_hunt_found, hunt_id, relative_path, &directory_number,symlink_name);
+  find_treasure_hunt(d, &treasure_hunt_found, hunt_id, relative_path,symlink_name);
 
-  if(treasure_hunt_found==1)
+  if(treasure_hunt_found==1) //we only delete the hunt if we found it
   {
     printf("Hunt found\n");
     DIR *hunt = opendir(relative_path);
@@ -349,7 +345,7 @@ void remove_hunt(char *hunt_id) //function for removing an entire hunt
       {
         sprintf(file_relative_path,"%s/%s",relative_path,content->d_name);
         printf("%s\n",file_relative_path);
-        if(unlink(file_relative_path)==-1)
+        if(unlink(file_relative_path)==-1) //we delete all the files inside the hunt directory
         {
           perror("Delete a treasure file failed");
           exit(-1);
@@ -364,13 +360,13 @@ void remove_hunt(char *hunt_id) //function for removing an entire hunt
       exit(-1);
     }
     printf("Done closing the hunt directory\n");
-    if(rmdir(relative_path)==-1)
+    if(rmdir(relative_path)==-1) //removing the hunt directory
     {
       perror("Remove the hunt directory failed");
       exit(-1);
     }
     printf("Done deleting the hunt directory\n");
-    if (unlink(symlink_name)==-1)
+    if (unlink(symlink_name)==-1) //deleting the symbolic link
     {
       perror("Failed deleting the symlink");
       exit(-1);
@@ -388,7 +384,7 @@ void remove_hunt(char *hunt_id) //function for removing an entire hunt
   }
 }
 
-int checkCommand(char *command)
+int checkCommand(char *command) //function that returns a value according to the given command
 {
   if(strcmp(command,"add")==0)
     {
@@ -410,10 +406,10 @@ int checkCommand(char *command)
     {
       return 5;
     }
-  return -1; //daca cuvantul e orice altceva
+  return -1; //if the word is anything else
 }
 
-int main(int argc,char **argv)
+int main(int argc,char **argv) //the main function
 {
   if ( argc < 3 || argc > 4 )
     {
