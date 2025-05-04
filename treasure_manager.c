@@ -8,6 +8,7 @@
 #include<time.h>
 #include<pwd.h>
 #include<dirent.h>
+#include<signal.h>
 #include <sys/sysmacros.h>
 #include<sys/stat.h>
 
@@ -384,6 +385,115 @@ void remove_hunt(char *hunt_id) //function for removing an entire hunt
   }
 }
 
+void list_all_hunts()
+{
+  DIR *d;
+  DIR *d2;
+  treasure treasures[100];
+  char path[300];
+  if ((d=opendir("."))==NULL)
+  {
+    perror("Open the hunt directory");
+    exit(-1);
+  }
+  struct dirent *current_pointer=readdir(d);
+  while(current_pointer != NULL) //while there are still elements in the main directory
+  {
+    if (current_pointer->d_type == DT_DIR && strcmp(current_pointer->d_name, ".git")!=0 && strcmp(current_pointer->d_name, ".")!=0 && strcmp(current_pointer->d_name, "..")!=0)
+      {
+          //printf("%s - %s\n", current_pointer_subd->d_name, hunt_id);
+          printf("Hunt id: %s\n",current_pointer->d_name);
+          sprintf(path, "./%s", current_pointer->d_name);
+          if ((d2=opendir(path))==NULL)
+          {
+            perror("Open the hunt failed");
+            exit(-1);
+          }
+          sprintf(path, "./%s/file.bin", current_pointer->d_name);
+          int descr=open(path, O_RDONLY);
+          if(descr<0)
+          {
+              perror("Open the file for reading the treasures");
+              exit(-1);
+          }
+          int treasures_number=0;
+          while((read(descr,&treasures[treasures_number], sizeof(treasures)/MAX_TREASURES)) > 0) //reading the treasures from the file in the array called "treasures"
+          {
+            treasures_number++;
+          }
+          printf("Number of treasures: %d\n",treasures_number);
+          if(close(descr)!=0)
+          {
+            perror("Close the treasures file");
+            exit(-1);
+          }
+          if (closedir(d2)!=0)
+          {
+            perror("Close the hunt failed");
+            exit(-1);
+          }
+      }
+      current_pointer=readdir(d);
+  }
+  if (closedir(d)!=0)
+  {
+    perror("Close the hunt directory failed");
+    exit(-1);
+  }
+}
+
+void handle(int sig)
+{
+    printf("Signal SIGUSR1 received\n");
+    char monitor_cmd[100];
+    char actual_command[10];
+    char hunt_id[12];
+    char treasure_id[8];
+    int fd=open("cmd.txt",O_RDONLY);
+    read(fd,monitor_cmd,sizeof(monitor_cmd));
+    close(fd);
+    int word_count=0;
+    char *p=strtok(monitor_cmd," \n");
+    while(p!=NULL)
+    {
+      switch(word_count)
+      {
+        case 0:
+          strcpy(actual_command,p);
+          break;
+        case 1:
+          strcpy(hunt_id,p);
+          break;
+        case 2:
+          strcpy(treasure_id,p);
+          break;
+      }
+      word_count++;
+      p=strtok(NULL," \n");
+    }
+    if(strcmp(actual_command,"list_hunts")==0)
+    {
+      list_all_hunts();
+    }
+    if(strcmp(actual_command,"list_treasures")==0)
+    {
+      treasure_hunt_file_operation(hunt_id,treasure_id,0);
+    }
+    if(strcmp(actual_command,"view_treasures")==0)
+    {
+      treasure_hunt_file_operation(hunt_id,treasure_id,1);
+    }
+    printf("execution done\n");
+}
+
+void end_monitor(int sig)
+{
+  usleep(20000000);
+  printf("Monitor process ends\n");
+  exit(0);
+}
+
+
 int checkCommand(char *command) //function that returns a value according to the given command
 {
   if(strcmp(command,"add")==0)
@@ -406,17 +516,22 @@ int checkCommand(char *command) //function that returns a value according to the
     {
       return 5;
     }
+  if(strcmp(command,"list_all_hunts")==0)
+    {
+      return 6;
+    }
   return -1; //if the word is anything else
 }
 
-int main(int argc,char **argv) //the main function
+int main(void) //the main function
 {
-  if ( argc < 3 || argc > 4 )
+  /*if ( argc < 2 || argc > 4 )
     {
       printf("Not enough arguments\n");
       exit(-1);
-    }
-  switch(checkCommand(argv[1]))
+    }*/
+  
+  /*switch(checkCommand(argv[1]))
   {
      case 1:
        add_function(argv[2]); //if the hunt does not exist, it will be added in a new directory, a logged hunt will also be created
@@ -435,9 +550,29 @@ int main(int argc,char **argv) //the main function
         remove_hunt(argv[2]); //when we delete a hunt, we will also delete its logged hunt and, of course, 
                               //the symlink associated with it from the root directory
        break;
+      case 6:
+        list_all_hunts();
+        break;
      case -1:
        printf("The first argument is not valid\n");
        break;
   }
-  return 0;
+  return 0;*/
+
+  printf("Entered treasure hub\n");
+  struct sigaction monitor_actions;
+  memset(&monitor_actions, 0x00, sizeof(struct sigaction));
+  monitor_actions.sa_handler = handle;
+  if (sigaction(SIGUSR1, &monitor_actions, NULL) < 0)
+    {
+      perror("sigaction SIGUSR1 handle");
+      exit(-1);	     
+    }
+  monitor_actions.sa_handler = end_monitor;
+  if (sigaction(SIGUSR2, &monitor_actions, NULL) < 0)
+    {
+      perror("sigaction SIGUSR2 handle");
+      exit(-1);	     
+    }
+  while(1);
 }
