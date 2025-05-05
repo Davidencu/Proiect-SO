@@ -479,18 +479,19 @@ void handle(int sig)
     {
       treasure_hunt_file_operation(hunt_id,treasure_id,0);
     }
-    if(strcmp(actual_command,"view_treasures")==0)
+    if(strcmp(actual_command,"view_treasure")==0)
     {
       treasure_hunt_file_operation(hunt_id,treasure_id,1);
     }
-    printf("execution done\n");
-}
-
-void end_monitor(int sig)
-{
-  usleep(20000000);
-  printf("Monitor process ends\n");
-  exit(0);
+    if(strcmp(actual_command,"stop_monitor")==0)
+    {
+      printf("SIGUSR1 received from parent\n");
+      kill(getppid(), SIGUSR1);
+      usleep(20000000);
+      kill(getppid(), SIGUSR2);
+      printf("Monitor process ends\n");
+      exit(0);
+    }
 }
 
 
@@ -559,19 +560,13 @@ int main(void) //the main function
   }
   return 0;*/
 
-  printf("Entered treasure hub\n");
+  //printf("Entered treasure hub\n");
   struct sigaction monitor_actions;
   memset(&monitor_actions, 0x00, sizeof(struct sigaction));
   monitor_actions.sa_handler = handle;
   if (sigaction(SIGUSR1, &monitor_actions, NULL) < 0)
     {
       perror("sigaction SIGUSR1 handle");
-      exit(-1);	     
-    }
-  monitor_actions.sa_handler = end_monitor;
-  if (sigaction(SIGUSR2, &monitor_actions, NULL) < 0)
-    {
-      perror("sigaction SIGUSR2 handle");
       exit(-1);	     
     }
   while(1);

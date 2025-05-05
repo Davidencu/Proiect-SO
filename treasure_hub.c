@@ -5,12 +5,13 @@
 #include<fcntl.h>
 #include<stdint.h>
 #include<unistd.h>
-#include<time.h>
 #include<pwd.h>
 #include<dirent.h>
 #include<signal.h>
 #include<sys/sysmacros.h>
-#include<sys/stat.h>
+#include<sys/wait.h>
+
+int child_sleeping=0;
 
 void start_monitor(pid_t *child_pid)
 {
@@ -23,7 +24,7 @@ void start_monitor(pid_t *child_pid)
     else 
     if (*child_pid == 0)
     {
-        printf("We are in the child process\n");
+        //printf("We are in the child process\n");
         execl("./tm","./tm",NULL);
     }
 }
@@ -79,6 +80,16 @@ int getCommandNumber(char *cmd)
     return 0;
 }
 
+void child_is_sleeping(int sig)
+{
+    child_sleeping=1;
+}
+
+void child_woke_up(int sig)
+{
+    child_sleeping=0;
+}
+
 void monitor_terminated(int sig)
 {
     printf("Monitor terminated\n");
@@ -89,23 +100,44 @@ int main(void)
     char cmd[100]; //string used to write data into a file that will be read by the monitor
     char cmd2[100];
     int command_number;
+    int monitor_exists=0;
+    //int status;
     pid_t child_pid;
     struct sigaction main_actions;
     memset(&main_actions, 0x00, sizeof(struct sigaction));
     //printf("%d\n",getpid());
-    while(fgets(cmd,100,stdin)!=NULL)
+    while(1)
     {
+        printf("-----------------------------\n");
+        usleep(1000);
+        printf("Enter command: ");
+        usleep(1000);
+        fgets(cmd,100,stdin);
+        usleep(1000);
+        printf("-----------------------------\n");
         strcpy(cmd2, cmd);
         command_number=getCommandNumber(cmd2);
+        if(child_sleeping)
+        {
+            fprintf(stderr, "Cannot give command, child process is sleeping\n");
+        }
+        else{
         switch(command_number)
         {
             case 1:
-                start_monitor(&child_pid);
+                if(!monitor_exists)
+                {
+                    start_monitor(&child_pid);
+                    monitor_exists=1;
+                }
+                else
+                {
+                    fprintf(stderr,"monitor already exists\n");
+                }
                 break;
             case 2:
                 write_to_file(cmd);
                 kill(child_pid, SIGUSR1);
-                printf("SIGUSR1 sent\n");
                 break;
             case 3:
                 write_to_file(cmd);
@@ -117,21 +149,42 @@ int main(void)
                 break;
             case 5:
                 write_to_file(cmd);
-                kill(child_pid, SIGUSR2);
+                kill(child_pid, SIGUSR1);
+                main_actions.sa_handler = child_is_sleeping;
+                if (sigaction(SIGUSR1, &main_actions, NULL) < 0)
+                {
+                    perror("SIGUSR1 received from child");
+                    exit(-1);
+                }
+                main_actions.sa_handler = child_woke_up;
+                if (sigaction(SIGUSR2, &main_actions, NULL) < 0)
+                {
+                    perror("SIGUSR2 received from child");
+                    exit(-1);
+                }
                 main_actions.sa_handler = monitor_terminated;
                 if (sigaction(SIGCHLD, &main_actions, NULL) < 0)
                 {
-                    perror("sigaction SIGCHLD");
+                    perror("SIGUSR2 received from child");
                     exit(-1);
                 }
+                monitor_exists=0;
                 break;
             case 6:
-                exit(0);
+                if(!monitor_exists)
+                {
+                    printf("Main process exited successfully\n");
+                    exit(0);
+                }
+                else
+                {
+                    fprintf(stderr,"Monitor still running! Please kill the process first\n");
+                }
                 break;
             case -1:
-                printf("Invalid command\n");
-                exit(-1);
+                fprintf(stderr,"Invalid command, please insert a valid one\n");
                 break;
+        }
         }
     }
 }
