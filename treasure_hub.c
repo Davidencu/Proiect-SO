@@ -13,9 +13,101 @@
 
 int child_sleeping=0;
 
+void handle(int sig)
+{
+    char monitor_cmd[100];
+    char actual_command[10];
+    char hunt_id[12];
+    char treasure_id[8];
+    int fd=open("cmd.txt",O_RDONLY); //monitor reads the command from the cmd.txt file created by the main process
+    read(fd,monitor_cmd,sizeof(monitor_cmd));
+    close(fd);
+    int word_count=0;
+    char *p=strtok(monitor_cmd," \n");
+    while(p!=NULL)
+    {
+      switch(word_count)
+      {
+        case 0:
+          strcpy(actual_command,p);
+          break;
+        case 1:
+          strcpy(hunt_id,p);
+          break;
+        case 2:
+          strcpy(treasure_id,p);
+          break;
+      }
+      word_count++;
+      p=strtok(NULL," \n");
+    }
+    if(strcmp(actual_command,"list_hunts")==0)
+    {
+        int child_pid2;
+        if((child_pid2 = fork()) < 0) //forking the monitor to execute the treasure manager with the command line arguments read from the file
+        {
+            perror("Failed creating the monitor process");
+            exit(-1);
+        }
+        else 
+        if (child_pid2 == 0) //executing the treasure manager in the child monitor process
+        {
+            execl("./tm","./tm","list_hunts",NULL);
+        }
+    }
+    if(strcmp(actual_command,"list_treasures")==0)
+    {
+        int child_pid2;
+        if((child_pid2 = fork()) < 0)
+        {
+            perror("Failed creating the monitor process");
+            exit(-1);
+        }
+        else 
+        if (child_pid2 == 0)
+        {
+            execl("./tm","./tm","list",hunt_id,NULL);
+        }
+    }
+    if(strcmp(actual_command,"view_treasure")==0)
+    {
+        int child_pid2;
+        if((child_pid2 = fork()) < 0)
+        {
+            perror("Failed creating the monitor process");
+            exit(-1);
+        }
+        else 
+        if (child_pid2 == 0)
+        {
+            execl("./tm","./tm","view",hunt_id,treasure_id,NULL);
+        }
+    }
+    if(strcmp(actual_command,"stop_monitor")==0)
+    {
+      printf("SIGUSR1 received from parent\n");
+      kill(getppid(), SIGUSR1); //sends a signal to the main process announcing that the monitor is going to sleep
+      usleep(20000000); //puts the monitor to sleep for 20 seconds
+      kill(getppid(), SIGUSR2); //sends another signal to the main process announcing that the monitor woke up
+      exit(0); //ends the monitor
+    }
+}
+
+void monitor()
+{
+    struct sigaction monitor_actions;
+    memset(&monitor_actions, 0x00, sizeof(struct sigaction));
+    monitor_actions.sa_handler = handle;
+    if (sigaction(SIGUSR1, &monitor_actions, NULL) < 0)
+    {
+      perror("sigaction SIGUSR1 handle");
+      exit(-1);	     
+    }
+  while(1);
+}
+
 void start_monitor(pid_t *child_pid)
 {
-    //char *args[]={"<","cmd.txt",NULL};
     if((*child_pid = fork()) < 0)
     {
         perror("Failed creating the monitor process");
@@ -24,8 +116,7 @@ void start_monitor(pid_t *child_pid)
     else 
     if (*child_pid == 0)
     {
-        //printf("We are in the child process\n");
-        execl("./tm","./tm",NULL);
+        monitor(); //executes the monitor code
     }
 }
 
@@ -92,7 +183,16 @@ void child_woke_up(int sig)
 
 void monitor_terminated(int sig)
 {
-    printf("Monitor terminated\n");
+    int status;
+    pid_t pid;
+
+    if ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+        if (WIFEXITED(status)) {
+            printf("\nMonitor exited with status %d\n", WEXITSTATUS(status));
+        } else {
+            printf("\nMonitor terminated abnormally\n");
+        }
+    }
 }
 
 int main(void)
@@ -101,25 +201,24 @@ int main(void)
     char cmd2[100];
     int command_number;
     int monitor_exists=0;
-    //int status;
     pid_t child_pid;
     struct sigaction main_actions;
     memset(&main_actions, 0x00, sizeof(struct sigaction));
     //printf("%d\n",getpid());
     while(1)
     {
-        printf("-----------------------------\n");
+        //printf("-----------------------------\n");
         usleep(1000);
         printf("Enter command: ");
         usleep(1000);
-        fgets(cmd,100,stdin);
+        fgets(cmd,100,stdin); //reads the current command from stdin
         usleep(1000);
-        printf("-----------------------------\n");
+        //printf("-----------------------------\n");
         strcpy(cmd2, cmd);
         command_number=getCommandNumber(cmd2);
-        if(child_sleeping)
+        if(child_sleeping) //if the monitor is sleeping, print an error message
         {
-            fprintf(stderr, "Cannot give command, child process is sleeping\n");
+            fprintf(stderr, "Cannot give command, monitor is sleeping\n");
         }
         else{
         switch(command_number)
@@ -136,39 +235,68 @@ int main(void)
                 }
                 break;
             case 2:
-                write_to_file(cmd);
-                kill(child_pid, SIGUSR1);
+                if (monitor_exists)
+                {
+                    write_to_file(cmd); //writes to the cmd.txt the details about the current command then sends SIGUSR1 to the monitor
+                    kill(child_pid, SIGUSR1);
+                }
+                else
+                {
+                    fprintf(stderr,"Monitor does not exist, please create it!\n");
+                }
                 break;
             case 3:
-                write_to_file(cmd);
-                kill(child_pid, SIGUSR1);
+                if(monitor_exists)
+                {
+                    write_to_file(cmd);
+                    kill(child_pid, SIGUSR1);
+                }
+                else
+                {
+                    fprintf(stderr,"Monitor does not exist, please create it!\n");
+                }
                 break;
             case 4:
-                write_to_file(cmd);
-                kill(child_pid, SIGUSR1);
+                if(monitor_exists)
+                {
+                    write_to_file(cmd);
+                    kill(child_pid, SIGUSR1);
+                }
+                else
+                {
+                    fprintf(stderr,"Monitor does not exist, please create it!\n");
+                }
                 break;
             case 5:
-                write_to_file(cmd);
-                kill(child_pid, SIGUSR1);
-                main_actions.sa_handler = child_is_sleeping;
-                if (sigaction(SIGUSR1, &main_actions, NULL) < 0)
+                if(monitor_exists)
                 {
-                    perror("SIGUSR1 received from child");
-                    exit(-1);
+                    write_to_file(cmd);
+                    kill(child_pid, SIGUSR1);
+                    main_actions.sa_handler = child_is_sleeping; //if main process receives SIGUSR1 from monitor, it will set the child_is_sleeping variable to 1
+                    if (sigaction(SIGUSR1, &main_actions, NULL) < 0)
+                    {
+                        perror("SIGUSR1 received from child");
+                        exit(-1);
+                    }
+                    main_actions.sa_handler = child_woke_up; //if main process receives SIGUSR2 from monitor, it will set the child_is_sleeping variable to 0
+                    if (sigaction(SIGUSR2, &main_actions, NULL) < 0)
+                    {
+                        perror("SIGUSR2 received from child");
+                        exit(-1);
+                    }
+                    main_actions.sa_handler = monitor_terminated; //if main process receives SIGCHLD from monitor, it will acknowledge the user that the monitor process is finished
+                    if (sigaction(SIGCHLD, &main_actions, NULL) < 0)
+                    {
+                        perror("SIGUSR2 received from child");
+                        exit(-1);
+                    }
+                    
+                    monitor_exists=0;
                 }
-                main_actions.sa_handler = child_woke_up;
-                if (sigaction(SIGUSR2, &main_actions, NULL) < 0)
+                else
                 {
-                    perror("SIGUSR2 received from child");
-                    exit(-1);
+                    printf("Monitor does not exist. Please create it!\n");
                 }
-                main_actions.sa_handler = monitor_terminated;
-                if (sigaction(SIGCHLD, &main_actions, NULL) < 0)
-                {
-                    perror("SIGUSR2 received from child");
-                    exit(-1);
-                }
-                monitor_exists=0;
                 break;
             case 6:
                 if(!monitor_exists)

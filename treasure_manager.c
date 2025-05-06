@@ -442,58 +442,6 @@ void list_all_hunts()
   }
 }
 
-void handle(int sig)
-{
-    printf("Signal SIGUSR1 received\n");
-    char monitor_cmd[100];
-    char actual_command[10];
-    char hunt_id[12];
-    char treasure_id[8];
-    int fd=open("cmd.txt",O_RDONLY);
-    read(fd,monitor_cmd,sizeof(monitor_cmd));
-    close(fd);
-    int word_count=0;
-    char *p=strtok(monitor_cmd," \n");
-    while(p!=NULL)
-    {
-      switch(word_count)
-      {
-        case 0:
-          strcpy(actual_command,p);
-          break;
-        case 1:
-          strcpy(hunt_id,p);
-          break;
-        case 2:
-          strcpy(treasure_id,p);
-          break;
-      }
-      word_count++;
-      p=strtok(NULL," \n");
-    }
-    if(strcmp(actual_command,"list_hunts")==0)
-    {
-      list_all_hunts();
-    }
-    if(strcmp(actual_command,"list_treasures")==0)
-    {
-      treasure_hunt_file_operation(hunt_id,treasure_id,0);
-    }
-    if(strcmp(actual_command,"view_treasure")==0)
-    {
-      treasure_hunt_file_operation(hunt_id,treasure_id,1);
-    }
-    if(strcmp(actual_command,"stop_monitor")==0)
-    {
-      printf("SIGUSR1 received from parent\n");
-      kill(getppid(), SIGUSR1);
-      usleep(20000000);
-      kill(getppid(), SIGUSR2);
-      printf("Monitor process ends\n");
-      exit(0);
-    }
-}
-
 
 int checkCommand(char *command) //function that returns a value according to the given command
 {
@@ -517,22 +465,22 @@ int checkCommand(char *command) //function that returns a value according to the
     {
       return 5;
     }
-  if(strcmp(command,"list_all_hunts")==0)
+  if(strcmp(command,"list_hunts")==0)
     {
       return 6;
     }
   return -1; //if the word is anything else
 }
 
-int main(void) //the main function
+int main(int argc,char **argv) //the main function
 {
-  /*if ( argc < 2 || argc > 4 )
+  if ( argc < 2 || argc > 4 )
     {
       printf("Not enough arguments\n");
       exit(-1);
-    }*/
+    }
   
-  /*switch(checkCommand(argv[1]))
+  switch(checkCommand(argv[1]))
   {
      case 1:
        add_function(argv[2]); //if the hunt does not exist, it will be added in a new directory, a logged hunt will also be created
@@ -558,16 +506,7 @@ int main(void) //the main function
        printf("The first argument is not valid\n");
        break;
   }
-  return 0;*/
+  return 0;
 
   //printf("Entered treasure hub\n");
-  struct sigaction monitor_actions;
-  memset(&monitor_actions, 0x00, sizeof(struct sigaction));
-  monitor_actions.sa_handler = handle;
-  if (sigaction(SIGUSR1, &monitor_actions, NULL) < 0)
-    {
-      perror("sigaction SIGUSR1 handle");
-      exit(-1);	     
-    }
-  while(1);
 }
