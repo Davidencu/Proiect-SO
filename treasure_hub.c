@@ -12,6 +12,7 @@
 #include<sys/wait.h>
 
 int child_sleeping=0;
+int monitor_exists=0;
 
 void handle(int sig)
 {
@@ -85,9 +86,8 @@ void handle(int sig)
     }
     if(strcmp(actual_command,"stop_monitor")==0)
     {
-      printf("SIGUSR1 received from parent\n");
       kill(getppid(), SIGUSR1); //sends a signal to the main process announcing that the monitor is going to sleep
-      usleep(20000000); //puts the monitor to sleep for 20 seconds
+      usleep(15000000); //puts the monitor to sleep for 15 seconds
       kill(getppid(), SIGUSR2); //sends another signal to the main process announcing that the monitor woke up
       exit(0); //ends the monitor
     }
@@ -185,7 +185,7 @@ void monitor_terminated(int sig)
 {
     int status;
     pid_t pid;
-
+    monitor_exists=0;
     if ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
         if (WIFEXITED(status)) {
             printf("\nMonitor exited with status %d\n", WEXITSTATUS(status));
@@ -200,7 +200,7 @@ int main(void)
     char cmd[100]; //string used to write data into a file that will be read by the monitor
     char cmd2[100];
     int command_number;
-    int monitor_exists=0;
+    //int monitor_exists=0;
     pid_t child_pid;
     struct sigaction main_actions;
     memset(&main_actions, 0x00, sizeof(struct sigaction));
@@ -242,7 +242,7 @@ int main(void)
                 }
                 else
                 {
-                    fprintf(stderr,"Monitor does not exist, please create it!\n");
+                    fprintf(stderr,"list_hunts error: Monitor does not exist, please create it!\n");
                 }
                 break;
             case 3:
@@ -253,7 +253,7 @@ int main(void)
                 }
                 else
                 {
-                    fprintf(stderr,"Monitor does not exist, please create it!\n");
+                    fprintf(stderr,"list_treeasures error: Monitor does not exist, please create it!\n");
                 }
                 break;
             case 4:
@@ -264,7 +264,7 @@ int main(void)
                 }
                 else
                 {
-                    fprintf(stderr,"Monitor does not exist, please create it!\n");
+                    fprintf(stderr,"view_treasure error: Monitor does not exist, please create it!\n");
                 }
                 break;
             case 5:
@@ -287,15 +287,15 @@ int main(void)
                     main_actions.sa_handler = monitor_terminated; //if main process receives SIGCHLD from monitor, it will acknowledge the user that the monitor process is finished
                     if (sigaction(SIGCHLD, &main_actions, NULL) < 0)
                     {
-                        perror("SIGUSR2 received from child");
+                        perror("SIGCHLD received from child");
                         exit(-1);
                     }
                     
-                    monitor_exists=0;
+                    
                 }
                 else
                 {
-                    printf("Monitor does not exist. Please create it!\n");
+                    fprintf(stderr,"stop_monitor error: Monitor does not exist. Please create it!\n");
                 }
                 break;
             case 6:
