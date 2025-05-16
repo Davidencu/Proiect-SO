@@ -213,7 +213,7 @@ int main(void)
     char buf[1000];
     char buf2[1000];
     int command_number;
-    pid_t child_pid=-1;
+    pid_t child_pid;
     struct sigaction main_actions;
     //FILE *stream=NULL;
     memset(&main_actions, 0x00, sizeof(struct sigaction));

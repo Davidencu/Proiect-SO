@@ -1,15 +1,15 @@
 CC = gcc
-CFLAGS = -Wall -O2
+CFLAGS = -Wall
 
-all: treasure_manager treasure_hub calculate_score
+all: prog1 prog2 prog3
 
-prog1: prog1.c
+prog1: treasure_manager.c
 	$(CC) $(CFLAGS) -o tm treasure_manager.c
 
-prog2: prog2.c
+prog2: treasure_hub.c
 	$(CC) $(CFLAGS) -o th treasure_hub.c
 
-prog3: prog3.c
+prog3: calculate_score.c
 	$(CC) $(CFLAGS) -o cs calculate_score.c
 
 clean:
