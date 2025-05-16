@@ -107,7 +107,7 @@ void add_function(char *hunt_id) //adds a treasure in a specified hunt. If the h
       }
       //sprintf(logged_hunt_relative_path,"%s/logged_hunt.txt",relative_path);
       sprintf(logged_hunt_relative_path,"%s/logged_hunt.txt",relative_path); //adding the logged hunt text file
-      if((descr = open(logged_hunt_relative_path, O_CREAT | O_WRONLY | O_APPEND, 0777))==-1)
+      if((descr = open(logged_hunt_relative_path, O_CREAT | O_WRONLY | O_APPEND, 00777))==-1)
       {
         printf("Cannot add the logged hunt:%s\n", strerror(errno));
         exit(-1);
@@ -402,7 +402,7 @@ void list_all_hunts()
     if (current_pointer->d_type == DT_DIR && strcmp(current_pointer->d_name, ".git")!=0 && strcmp(current_pointer->d_name, ".")!=0 && strcmp(current_pointer->d_name, "..")!=0)
       {
           //printf("%s - %s\n", current_pointer_subd->d_name, hunt_id);
-          printf("Hunt id: %s\n",current_pointer->d_name);
+          printf("%s,",current_pointer->d_name);
           sprintf(path, "./%s", current_pointer->d_name);
           if ((d2=opendir(path))==NULL)
           {
@@ -421,7 +421,7 @@ void list_all_hunts()
           {
             treasures_number++;
           }
-          printf("Number of treasures: %d\n",treasures_number);
+          printf("%d\n",treasures_number);
           if(close(descr)!=0)
           {
             perror("Close the treasures file");
@@ -507,6 +507,4 @@ int main(int argc,char **argv) //the main function
        break;
   }
   return 0;
-
-  //printf("Entered treasure hub\n");
 }
