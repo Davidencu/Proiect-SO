@@ -56,7 +56,7 @@ void handle(int sig)
         else 
         if (child_pid2 == 0) //executing the treasure manager in the child monitor process
         {
-            execl("./tm","./tm","list_hunts",NULL);
+            execl("./treasure_manager","./treasure_manager","list_hunts",NULL);
         }
     }
     if(strcmp(actual_command,"list_treasures")==0)
@@ -70,7 +70,7 @@ void handle(int sig)
         else 
         if (child_pid2 == 0)
         {
-            execl("./tm","./tm","list",hunt_id,NULL);
+            execl("./treasure_manager","./treasure_manager","list",hunt_id,NULL);
         }
     }
     if(strcmp(actual_command,"view_treasure")==0)
@@ -84,7 +84,7 @@ void handle(int sig)
         else 
         if (child_pid2 == 0)
         {
-            execl("./tm","./tm","view",hunt_id,treasure_id,NULL);
+            execl("./treasure_manager","./treasure_manager","view",hunt_id,treasure_id,NULL);
         }
     }
 
@@ -342,7 +342,7 @@ int main(void)
                         {
                             close(pfd2[0]);
                             dup2(pfd2[1],1); //redirects the stdout of a calculate_score process to the pipe
-                            execl("./cs","./cs",p,NULL);
+                            execl("./calculate_score","./calculate_score",p,NULL);
                         }
                         close(pfd2[1]);
                         memset(buf2,0,sizeof(buf));

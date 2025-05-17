@@ -19,7 +19,7 @@ typedef struct coordinates{
   
 typedef struct treasure{
     char id[8];
-    char username[33];
+    char username[16];
     char clue[64];
     coordinates c;
     int value;

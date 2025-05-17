@@ -20,7 +20,7 @@ typedef struct coordinates{
 
 typedef struct treasure{
   char id[8];
-  char username[33];
+  char username[16];
   char clue[64];
   coordinates c;
   int value;
@@ -138,8 +138,8 @@ void add_function(char *hunt_id) //adds a treasure in a specified hunt. If the h
     }
     printf("Treasure ID: "); //reading the treasure elements from the stdin
     scanf("%7s",buffer.id);
-    strcpy(buffer.username,getpwuid(getuid())->pw_name);
-    printf("The username was automatically recorded\n"); //the username is the login username
+    printf("Username: ");
+    scanf("%15s",buffer.username);
     printf("Clue (you cannot use spaces): ");
     scanf("%63s",buffer.clue);
     printf("Coordinate x: ");
@@ -159,7 +159,7 @@ void add_function(char *hunt_id) //adds a treasure in a specified hunt. If the h
       exit(-1);
     }
     //sprintf(symlink_name,"logged_hunt-<%s>",hunt_id);
-    sprintf(message,"[%s]: add_treasure %s\n",getpwuid(getuid())->pw_name,hunt_id);
+    sprintf(message,"add %s\n",hunt_id);
     write_to_logged_hunt(symlink_name,message); //printing the corresponding message to the logged_hunt
   if(closedir(d)!=0)
   {
@@ -259,7 +259,7 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
         {
           printf("Treasure not found\n");
         }
-        sprintf(message,"[%s]: remove_treasure %s %s\n",getpwuid(getuid())->pw_name,hunt_id, treasure_id);
+        sprintf(message,"remove_treasure %s %s\n",hunt_id, treasure_id);
         write_to_logged_hunt(symlink_name,message);
       }
       if(operation == 0) //print all the treasures in a hunt
@@ -277,10 +277,10 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
         }
         for(int i=0;i<treasures_number;i++)
         {
-          printf("Treasure %d: %s - %s - %s - %f - %f - %d\n",i,treasures[i].id,treasures[i].username,treasures[i].clue,treasures[i].c.x,treasures[i].c.y,treasures[i].value);
+          printf("Treasure %d: %s - %s - %s - %.2f - %.2f - %d\n",i,treasures[i].id,treasures[i].username,treasures[i].clue,treasures[i].c.x,treasures[i].c.y,treasures[i].value);
         }
         
-        sprintf(message,"[%s]: list %s\n",getpwuid(getuid())->pw_name,hunt_id);
+        sprintf(message,"list %s\n",hunt_id);
         write_to_logged_hunt(symlink_name,message); //printing the corresponding message to the lgged_hunt
       }
       if(operation==1) //print a specific treasure by its id
@@ -299,7 +299,7 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
         {
           printf("Treasure not found\n");
         }
-        sprintf(message,"[%s]: view %s %s\n",getpwuid(getuid())->pw_name,hunt_id, treasure_id);
+        sprintf(message,"view %s %s\n",hunt_id, treasure_id);
         write_to_logged_hunt(symlink_name,message); //printing the corresponding message to the logged_hunt file
       }
       
