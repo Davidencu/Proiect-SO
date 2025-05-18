@@ -334,22 +334,23 @@ int main(void)
             memset(buf,0,sizeof(buf));
             if (monitor_exists)
             {
-                int pfd2[2];
+                int pfd2[MAX_HUNTS][2];
                 write_to_file(cmd); //writes to the cmd.txt the details about the current command then sends SIGUSR1 to the monitor
                 kill(child_pid, SIGUSR1);
                 read(pfd[0],buf,sizeof(buf));
                 int is_a_hunt_id=0;
                 char *p=strtok(buf,",");
                 is_a_hunt_id=1;
-                if(pipe(pfd2)<0)
-                {
-                    fprintf(stderr,"Cannot create pipe\n");
-                    exit(-1);
-                }
+                int cnt=0;
                 while(p!=NULL)
                 {
                     if (is_a_hunt_id) 
                     {
+                        if(pipe(pfd2[cnt])<0)
+                        {
+                            fprintf(stderr,"Cannot create pipe\n");
+                            exit(-1);
+                        }
                         int hunt_pid;
                         int status;
                         if((hunt_pid=fork())<0)
@@ -359,13 +360,13 @@ int main(void)
                         }
                         if(hunt_pid==0)
                         {
-                            close(pfd2[0]);
-                            dup2(pfd2[1],1); //redirects the stdout of a calculate_score process to the pipe
+                            close(pfd2[cnt][0]);
+                            dup2(pfd2[cnt][1],1); //redirects the stdout of a calculate_score process to the pipe
                             execl("./calculate_scores","./calculate_scores",p,NULL);
                         }
-                        close(pfd2[1]);
+                        close(pfd2[cnt][1]);
                         memset(buf2,0,sizeof(buf));
-                        read(pfd2[0],buf2,sizeof(buf2));
+                        read(pfd2[cnt][0],buf2,sizeof(buf2));
                         printf("%s",buf2);
                         p=strtok(NULL,"\n");
                         is_a_hunt_id=0;
@@ -375,6 +376,8 @@ int main(void)
                             printf("Calculate scores process ended abnormally\n");
                             exit(-1);
                         }
+                        close(pfd2[cnt][0]);
+                        cnt++;
                     }
                     else
                     {
@@ -382,7 +385,7 @@ int main(void)
                         is_a_hunt_id=1;
                     }
                 }
-                close(pfd2[0]);
+                
             }
             else
             {
