@@ -140,8 +140,10 @@ void add_function(char *hunt_id) //adds a treasure in a specified hunt. If the h
     scanf("%7s",buffer.id);
     printf("Username: ");
     scanf("%15s",buffer.username);
-    printf("Clue (you cannot use spaces): ");
-    scanf("%63s",buffer.clue);
+    getchar();
+    printf("Clue: ");
+    fgets(buffer.clue,64,stdin);
+    buffer.clue[strlen(buffer.clue)-1]='\0';
     printf("Coordinate x: ");
     scanf("%f",&buffer.c.x);
     printf("Coordinate y: ");
@@ -285,6 +287,11 @@ void treasure_hunt_file_operation(char *hunt_id,char *treasure_id, int operation
       }
       if(operation==1) //print a specific treasure by its id
       {
+        if(treasure_id==NULL)
+        {
+          printf("Treasure id not given\n");
+          return;
+        }
         int treasure_found=0;
         for(int i=0;i<treasures_number;i++)
         {

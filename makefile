@@ -9,8 +9,8 @@ prog1: treasure_manager.c
 prog2: treasure_hub.c
 	$(CC) $(CFLAGS) -o treasure_hub treasure_hub.c
 
-prog3: calculate_score.c
-	$(CC) $(CFLAGS) -o calculate_score calculate_score.c
+prog3: calculate_scores.c
+	$(CC) $(CFLAGS) -o calculate_scores calculate_scores.c
 
 clean:
-	rm -f treasure_manager treasure_hub calculate_score
+	rm -f treasure_manager treasure_hub calculate_scores

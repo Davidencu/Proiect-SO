@@ -23,12 +23,13 @@ void handle(int sig)
     char actual_command[10];
     char hunt_id[12];
     char treasure_id[8];
+    int status;
     int fd=open("cmd.txt",O_RDONLY); //monitor reads the command from the cmd.txt file created by the main process
     read(fd,monitor_cmd,sizeof(monitor_cmd));
     close(fd);
     int word_count=0;
     char *p=strtok(monitor_cmd," \n");
-    while(p!=NULL)
+    while(p!=NULL) //it reads the contents of the file in a formatted manner
     {
       switch(word_count)
       {
@@ -58,6 +59,12 @@ void handle(int sig)
         {
             execl("./treasure_manager","./treasure_manager","list_hunts",NULL);
         }
+        wait(&status);
+        if(!WIFEXITED(status))
+        {
+            printf("Monitor child exited abnormally\n");
+            exit(-1);
+        }
     }
     if(strcmp(actual_command,"list_treasures")==0)
     {
@@ -72,6 +79,12 @@ void handle(int sig)
         {
             execl("./treasure_manager","./treasure_manager","list",hunt_id,NULL);
         }
+        wait(&status);
+        if(!WIFEXITED(status))
+        {
+            printf("Monitor child exited abnormally\n");
+            exit(-1);
+        }
     }
     if(strcmp(actual_command,"view_treasure")==0)
     {
@@ -85,6 +98,12 @@ void handle(int sig)
         if (child_pid2 == 0)
         {
             execl("./treasure_manager","./treasure_manager","view",hunt_id,treasure_id,NULL);
+        }
+        wait(&status);
+        if(!WIFEXITED(status))
+        {
+            printf("Monitor child exited abnormally\n");
+            exit(-1);
         }
     }
 
@@ -101,10 +120,10 @@ void handle(int sig)
 void monitor()
 {
     close(pfd[0]); //close the read descriptor of the pipe
-    dup2(pfd[1], 1);
+    dup2(pfd[1], 1); //redirects the stdout of the monitor to the write end of the pipe
     struct sigaction monitor_actions;
     memset(&monitor_actions, 0x00, sizeof(struct sigaction));
-    monitor_actions.sa_handler = handle;
+    monitor_actions.sa_handler = handle; //if the monitor received SIGUSR1 then it will execute the instructions inside of the handle function
     if (sigaction(SIGUSR1, &monitor_actions, NULL) < 0)
     {
       perror("sigaction SIGUSR1 handle");
@@ -127,7 +146,7 @@ void start_monitor(pid_t *child_pid)
     }
 }
 
-void write_to_file(char *cmd)
+void write_to_file(char *cmd) //the function for writing the command details to the file
 {
     int descr;
     if((descr=open("./cmd.txt",O_CREAT | O_WRONLY | O_TRUNC, 00777))<0)
@@ -260,7 +279,7 @@ int main(void)
                 {
                     write_to_file(cmd); //writes to the cmd.txt the details about the current command then sends SIGUSR1 to the monitor
                     kill(child_pid, SIGUSR1);
-                    read(pfd[0],buf,sizeof(buf));
+                    read(pfd[0],buf,sizeof(buf)); //the main process reads from the pipe then prints the result to stdout
                     printf("%s",buf);
                 }
                 else
@@ -303,7 +322,6 @@ int main(void)
         {
             if(!monitor_exists)
             {
-                printf("Main process exited successfully\n");
                 exit(0);
             }
             else
@@ -333,6 +351,7 @@ int main(void)
                     if (is_a_hunt_id) 
                     {
                         int hunt_pid;
+                        int status;
                         if((hunt_pid=fork())<0)
                         {
                             fprintf(stderr,"Cannot create a calculate score process\n");
@@ -342,7 +361,7 @@ int main(void)
                         {
                             close(pfd2[0]);
                             dup2(pfd2[1],1); //redirects the stdout of a calculate_score process to the pipe
-                            execl("./calculate_score","./calculate_score",p,NULL);
+                            execl("./calculate_scores","./calculate_scores",p,NULL);
                         }
                         close(pfd2[1]);
                         memset(buf2,0,sizeof(buf));
@@ -350,6 +369,12 @@ int main(void)
                         printf("%s",buf2);
                         p=strtok(NULL,"\n");
                         is_a_hunt_id=0;
+                        wait(&status);
+                        if(!WIFEXITED(status))
+                        {
+                            printf("Calculate scores process ended abnormally\n");
+                            exit(-1);
+                        }
                     }
                     else
                     {
