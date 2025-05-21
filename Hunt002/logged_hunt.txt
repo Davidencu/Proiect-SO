@@ -1,0 +1,8 @@
+add Hunt002
+add Hunt002
+list Hunt002
+list Hunt002
+list Hunt002
+list Hunt002
+view Hunt002 06
+list Hunt002

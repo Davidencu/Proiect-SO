@@ -1,0 +1,28 @@
+add Hunt001
+add Hunt001
+add Hunt001
+add Hunt001
+add Hunt001
+list Hunt001
+view Hunt001 01
+view Hunt001 1
+view Hunt001 01
+view Hunt001 02
+list Hunt001
+view Hunt001 01
+remove_treasure Hunt001 07
+list Hunt001
+list Hunt001
+list Hunt001
+list Hunt001
+remove_treasure Hunt001 02
+list Hunt001
+list Hunt001
+view Hunt001 03
+view Hunt001 05
+list Hunt001
+view Hunt001 01
+view Hunt001 02
+list Hunt001
+view Hunt001 01
+list Hunt001
